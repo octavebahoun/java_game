@@ -88,6 +88,12 @@ public class FenetrePrincipale extends JFrame {
     private int tempsEcouleSecondes = 0;
     private javax.swing.Timer minuteur;
 
+    // --- Mode Duel ---
+    private boolean enModeDuel = false;
+    private int joueurActuel = 1;
+    private int scoreJoueur1 = 0;
+    private static final int TEMPS_DUEL_MAX = 180; // 3 minutes en secondes
+
     public FenetrePrincipale() {
         super("Jeu de Mots Caches");
         this.moteur = new MoteurJeu();
@@ -108,7 +114,17 @@ public class FenetrePrincipale extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 tempsEcouleSecondes++;
-                mettreAJourTimer();
+                if (enModeDuel) {
+                    int tempsRestant = TEMPS_DUEL_MAX - tempsEcouleSecondes;
+                    if (tempsRestant <= 0) {
+                        minuteur.stop();
+                        finTourDuel();
+                    } else {
+                        mettreAJourTimer();
+                    }
+                } else {
+                    mettreAJourTimer();
+                }
             }
         });
         minuteur.start();
@@ -205,10 +221,24 @@ public class FenetrePrincipale extends JFrame {
         boutonRejouer.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                enModeDuel = false;
                 onRejouer();
             }
         });
         saisie.add(boutonRejouer);
+
+        JButton boutonDuel = new JButton("Duel");
+        boutonDuel.setBackground(new Color(0x9C, 0x27, 0xB0)); // violet
+        boutonDuel.setForeground(FOND);
+        boutonDuel.setFont(new Font("SansSerif", Font.BOLD, 14));
+        boutonDuel.setFocusPainted(false);
+        boutonDuel.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                lancerDuel();
+            }
+        });
+        saisie.add(boutonDuel);
 
         JButton boutonQuitter = new JButton("Quitter");
         boutonQuitter.setBackground(new Color(0xF2, 0x4C, 0x4C)); // rouge
@@ -294,9 +324,13 @@ public class FenetrePrincipale extends JFrame {
                 champMot.setText("");
                 if (moteur.partieGagnee()) {
                     minuteur.stop();
-                    JOptionPane.showMessageDialog(this,
-                            "BRAVO ! Tous les mots ont ete trouves.\nScore final : " + moteur.getScore() + "\nTemps mis : " + String.format("%02d:%02d", tempsEcouleSecondes / 60, tempsEcouleSecondes % 60),
-                            "Victoire", JOptionPane.INFORMATION_MESSAGE);
+                    if (enModeDuel) {
+                        finTourDuel();
+                    } else {
+                        JOptionPane.showMessageDialog(this,
+                                "BRAVO ! Tous les mots ont ete trouves.\nScore final : " + moteur.getScore() + "\nTemps mis : " + String.format("%02d:%02d", tempsEcouleSecondes / 60, tempsEcouleSecondes % 60),
+                                "Victoire", JOptionPane.INFORMATION_MESSAGE);
+                    }
                 }
             } else {
                 JOptionPane.showMessageDialog(this,
@@ -427,9 +461,48 @@ public class FenetrePrincipale extends JFrame {
 
     /** Met à jour l'affichage du minuteur. */
     private void mettreAJourTimer() {
-        int minutes = tempsEcouleSecondes / 60;
-        int secondes = tempsEcouleSecondes % 60;
-        labelTimer.setText(String.format("Temps : %02d:%02d", minutes, secondes));
+        if (enModeDuel) {
+            int tempsRestant = TEMPS_DUEL_MAX - tempsEcouleSecondes;
+            int minutes = tempsRestant / 60;
+            int secondes = tempsRestant % 60;
+            labelTimer.setText(String.format("Duel J%d - Restant : %02d:%02d", joueurActuel, minutes, secondes));
+        } else {
+            int minutes = tempsEcouleSecondes / 60;
+            int secondes = tempsEcouleSecondes % 60;
+            labelTimer.setText(String.format("Temps : %02d:%02d", minutes, secondes));
+        }
+    }
+
+    private void lancerDuel() {
+        enModeDuel = true;
+        joueurActuel = 1;
+        scoreJoueur1 = 0;
+        JOptionPane.showMessageDialog(this, "Mode Duel activé ! Le Joueur 1 a 3 minutes pour faire le meilleur score.", "Duel J1", JOptionPane.INFORMATION_MESSAGE);
+        onRejouer();
+    }
+
+    private void finTourDuel() {
+        if (joueurActuel == 1) {
+            scoreJoueur1 = moteur.getScore();
+            JOptionPane.showMessageDialog(this, "Temps écoulé pour le Joueur 1 !\nScore : " + scoreJoueur1 + "\n\nAu tour du Joueur 2. Vous avez 3 minutes pour battre " + scoreJoueur1 + " points !", "Fin du tour J1", JOptionPane.INFORMATION_MESSAGE);
+            enModeDuel = true;
+            joueurActuel = 2;
+            onRejouer();
+        } else {
+            int scoreJoueur2 = moteur.getScore();
+            String message;
+            if (scoreJoueur2 > scoreJoueur1) {
+                message = "Le Joueur 2 gagne avec " + scoreJoueur2 + " points contre " + scoreJoueur1 + " !";
+            } else if (scoreJoueur1 > scoreJoueur2) {
+                message = "Le Joueur 1 gagne avec " + scoreJoueur1 + " points contre " + scoreJoueur2 + " !";
+            } else {
+                message = "Égalité parfaite ! (" + scoreJoueur1 + " points)";
+            }
+            JOptionPane.showMessageDialog(this, message, "Résultat du Duel", JOptionPane.INFORMATION_MESSAGE);
+            enModeDuel = false;
+            joueurActuel = 1;
+            onRejouer();
+        }
     }
 
     /** Construit une liste HTML avec les mots trouves barres. */
