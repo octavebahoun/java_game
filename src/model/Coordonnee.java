@@ -32,6 +32,23 @@ public class Coordonnee {
         return colonne;
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        Coordonnee autre = (Coordonnee) obj;
+        return ligne == autre.ligne && colonne == autre.colonne;
+    }
+
+    @Override
+    public int hashCode() {
+        return 31 * ligne + colonne;
+    }
+
     // --- Modificateurs (setters) ---
     public void setLigne(int ligne) {
         this.ligne = ligne;

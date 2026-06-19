@@ -46,13 +46,27 @@ public class Grille {
     /**
      * Tente de placer un mot dans la grille a partir de (ligne, colonne),
      * dans la direction (dLigne, dColonne).
-     *   - horizontal  : dLigne=0,  dColonne=1
-     *   - vertical    : dLigne=1,  dColonne=0
-     *   - diagonal    : dLigne=1,  dColonne=1
+     *   - horizontal  : dLigne=0,  dColonne=±1
+     *   - vertical    : dLigne=±1, dColonne=0
+     *   - diagonal    : dLigne=±1, dColonne=±1
      * Renvoie true si le mot a pu etre place, false sinon.
      */
     public boolean placerMot(String mot, int ligne, int colonne, int dLigne, int dColonne) {
+        if (mot == null || mot.isBlank()) {
+            throw new IllegalArgumentException("Le mot doit être non vide.");
+        }
         mot = mot.toUpperCase();
+
+        // 0) On n'autorise que les deplacements en ligne droite avec un pas de 1.
+        if (dLigne == 0 && dColonne == 0) {
+            return false;
+        }
+        if (Math.abs(dLigne) > 1 || Math.abs(dColonne) > 1) {
+            return false;
+        }
+        if (dLigne != 0 && dColonne != 0 && Math.abs(dLigne) != Math.abs(dColonne)) {
+            return false;
+        }
 
         // 1) On verifie que le mot tient dans la grille.
         int finLigne = ligne + dLigne * (mot.length() - 1);

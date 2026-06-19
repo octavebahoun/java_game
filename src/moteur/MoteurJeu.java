@@ -34,16 +34,14 @@ public class MoteurJeu {
     private ArrayList<Coordonnee> dernierChemin;
 
     /**
-     * Constructeur par defaut : prepare une partie jouable.
-     * Place quelques mots dans la grille puis remplit le reste
-     * de lettres aleatoires.
+     * Constructeur par defaut : prepare une partie avec mots aleatoires.
      */
     public MoteurJeu() {
         this.grille = new Grille();
         this.dictionnaire = new Dictionnaire();
         this.score = 0;
         this.dernierChemin = new ArrayList<Coordonnee>();
-        preparerPartie();
+        preparerPartieAleatoire();
     }
 
     /**
@@ -55,6 +53,22 @@ public class MoteurJeu {
         this.dictionnaire = dictionnaire;
         this.score = 0;
         this.dernierChemin = new ArrayList<Coordonnee>();
+    }
+
+    /**
+     * Constructeur pour mode prédéfini (deprecated - garder pour compatibilité tests).
+     * Si modeAleatoire = false, utilise les mots predéfinis.
+     */
+    public MoteurJeu(boolean modeAleatoire) {
+        this.grille = new Grille();
+        this.dictionnaire = new Dictionnaire();
+        this.score = 0;
+        this.dernierChemin = new ArrayList<Coordonnee>();
+        if (!modeAleatoire) {
+            preparerPartie();
+        } else {
+            preparerPartieAleatoire();
+        }
     }
 
     /** Place les mots de depart dans la grille et complete le reste. */
@@ -71,6 +85,31 @@ public class MoteurJeu {
     	    placerEtEnregistrer("NUIT",    5, 6, 1, 0);  // vertical  
     	    placerEtEnregistrer("VENT",    2, 5, 1, 1);  // diagonal
     	    
+        grille.remplirCasesVides();
+    }
+
+    /** Prepare une partie avec mots aleatoires : en selectionne 10 et les place aleatoirement. */
+    private void preparerPartieAleatoire() {
+        java.util.Random random = new java.util.Random();
+        dictionnaire.remplirAvecMotsAleatoires(10);
+        
+        // Essaie de placer les mots aleatoires a des positions aleatoires
+        for (String mot : dictionnaire.getTousLesMots()) {
+            boolean place = false;
+            int tentatives = 0;
+            while (!place && tentatives < 20) {
+                int ligne = random.nextInt(Grille.TAILLE);
+                int col = random.nextInt(Grille.TAILLE);
+                int direction = random.nextInt(2); // 0: H, 1: V
+                int dL = (direction == 1) ? 1 : 0;
+                int dC = (direction == 0) ? 1 : 0;
+                
+                if (grille.placerMot(mot, ligne, col, dL, dC)) {
+                    place = true;
+                }
+                tentatives++;
+            }
+        }
         grille.remplirCasesVides();
     }
 
@@ -97,8 +136,8 @@ public class MoteurJeu {
     /**
      * ALGORITHME PRINCIPAL.
      * Verifie si le mot saisi se trouve dans la grille entre les
-     * cases 'debut' et 'fin'. Le mot peut etre horizontal, vertical
-     * ou diagonal, et peut etre lu dans les deux sens.
+     * cases 'debut' et 'fin'. Le mot peut etre horizontal, vertical ou diagonal,
+     * et peut etre lu dans les deux sens.
      *
      * @return true si le mot est trouve (et present dans le dictionnaire),
      *         false sinon.

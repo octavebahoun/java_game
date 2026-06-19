@@ -169,6 +169,19 @@ public class FenetrePrincipale extends JFrame {
         });
         saisie.add(boutonRejouer);
 
+        JButton boutonQuitter = new JButton("Quitter");
+        boutonQuitter.setBackground(new Color(0xF2, 0x4C, 0x4C)); // rouge
+        boutonQuitter.setForeground(FOND);
+        boutonQuitter.setFont(new Font("SansSerif", Font.BOLD, 14));
+        boutonQuitter.setFocusPainted(false);
+        boutonQuitter.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                System.exit(0);
+            }
+        });
+        saisie.add(boutonQuitter);
+
         // -- Ligne d'etat (score + mots restants) --
         JPanel etat = new JPanel(new GridLayout(2, 1));
         etat.setBackground(FOND);

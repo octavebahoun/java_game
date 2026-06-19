@@ -66,7 +66,22 @@ public class MoteurJeuTest {
         assertTrue(trouve, "Le mot vertical ARBRE devrait etre trouve.");
     }
 
-    /** TEST 3 : un alignement impossible (en "L") doit lever une exception. */
+    /** TEST 3 : un mot diagonal doit etre detecte. */
+    @Test
+    public void testMotDiagonal() throws Exception {
+        Grille grille = new Grille();
+        grille.placerMot("VENT", 2, 2, 1, 1);
+        grille.remplirCasesVides();
+
+        Dictionnaire dictionnaire = new Dictionnaire();
+        dictionnaire.ajouterMot("VENT");
+        moteur = new MoteurJeu(grille, dictionnaire);
+
+        boolean trouve = moteur.verifier("VENT", new Coordonnee(2, 2), new Coordonnee(5, 5));
+        assertTrue(trouve, "Le mot diagonal VENT devrait etre trouve.");
+    }
+
+    /** TEST 4 : un alignement impossible (en "L") doit lever une exception. */
     @Test
     public void testAlignementInvalide() {
         assertThrows(AlignementInvalideException.class, () -> {

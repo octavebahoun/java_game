@@ -27,106 +27,177 @@ def add_bullet_slide(title, bullets, notes=None):
 slide_layout = prs.slide_layouts[0]
 slide = prs.slides.add_slide(slide_layout)
 slide.shapes.title.text = "Jeu de Mots Cachés"
-slide.placeholders[1].text = "Présentation du projet & démonstration"
-slide.notes_slide.notes_text_frame.text = "Bonjour, je présente le projet 'Jeu de Mots Cachés'."
+slide.placeholders[1].text = "Présentation des fonctions principales"
+slide.notes_slide.notes_text_frame.text = "Bonjour, je présente le projet 'Jeu de Mots Cachés'. Aujourd'hui, nous allons suivre le flux logique du jeu en explorant les fonctions principales qui le font fonctionner."
 
-# Overview
+# Contexte
 add_bullet_slide(
     "Contexte et objectif",
     [
-        "Petit jeu éducatif en Java (Swing + console)",
-        "But : trouver des mots cachés dans une grille 10x10",
-        "Approche : architecture MVC légère, tests unitaires simples"
+        "Jeu éducatif en Java : trouver des mots cachés dans une grille 10x10",
+        "Deux modes : console (CLI) et interface graphique (Swing)",
+        "Architecture MVC : séparation model / logique / interface"
     ],
-    notes="Objectif : expliquer rapidement le projet, sa finalité et le public visé."
+    notes="Le projet suit une architecture claire avec packages distincts : model, moteur, view, exception."
 )
 
-# Architecture
+# Flux global
 add_bullet_slide(
-    "Architecture du projet",
+    "Flux global du jeu",
     [
-        "Packages : model, moteur, view, exception",
-        "model : structures de données (Grille, Dictionnaire, Coordonnee)",
-        "moteur : logique du jeu (MoteurJeu, AppConsole)",
-        "view : interface graphique Swing (FenetrePrincipale)"
+        "1. Initialiser une partie → preparerPartie() place les mots",
+        "2. Afficher la grille → getGrille().toString()",
+        "3. Lire les saisies du joueur → lireEntier()",
+        "4. Vérifier le mot → verifier() [fonction PRINCIPALE]",
+        "5. Mettre à jour l'état → getDictionnaire(), getScore()"
     ],
-    notes="Montrer comment les responsabilités sont séparées entre model, moteur et view."
+    notes="Voici le flux du jeu étape par étape. Chaque étape correspond à une ou plusieurs fonctions que nous allons explorer en détail."
 )
 
-# Grille
+# Étape 1 : Initialisation
 add_bullet_slide(
-    "Classe `Grille` (src/model/Grille.java)",
+    "Étape 1 : Initialiser la partie",
     [
-        "Représente une grille 10x10 de lettres",
-        "Méthodes clés : placerMot(), remplirCasesVides(), toString()",
-        "Gestion des collisions et remplissage aléatoire"
+        "new MoteurJeu() crée une instance du moteur",
+        "preparerPartie() place 10 mots dans la grille",
+        "placerMot(String, ligne, col, dLigne, dCol) : place un mot et vérifie les collisions",
+        "remplirCasesVides() complète avec des lettres aléatoires"
     ],
-    notes="Expliquer l'algorithme de placement : vérification de la place, compatibilité, puis écriture."
+    notes="Au démarrage, la grille est créée vide. On place d'abord les mots de la partie (CHIEN, PYTHON, etc), puis on remplit le reste aléatoirement. Chaque mot est aussi enregistré dans le dictionnaire."
 )
 
-# MoteurJeu
+# Étape 2 : Afficher
 add_bullet_slide(
-    "Classe `MoteurJeu` (src/moteur/MoteurJeu.java)",
+    "Étape 2 : Afficher la grille",
     [
-        "Contient la grille, le dictionnaire et le score",
-        "méthode principale verifier() : lit trajectoire entre deux coordonnées",
-        "Valide mot + présence dans le dictionnaire -> met à jour le score"
+        "getGrille() récupère l'objet Grille du moteur",
+        "toString() affiche la grille avec numéros de lignes/colonnes",
+        "getCase(ligne, colonne) retourne la lettre à une position",
+        "Utile : le joueur doit lire les coordonnées sur la grille"
     ],
-    notes="Décrire l'algorithme de vérification : validation des coordonnées, détermination de l'alignement, lecture et comparaison."
+    notes="L'affichage est simple : tableau 10x10 avec en-têtes. Les numéros aident le joueur à repérer les mots visuellement et à noter les coordonnées de début et de fin."
 )
 
-# Dictionnaire
+# Étape 3 : Lire saisies
 add_bullet_slide(
-    "Classe `Dictionnaire` (src/model/Dictionnaire.java)",
+    "Étape 3 : Récupérer les saisies du joueur",
     [
-        "Stocke les mots à trouver et la liste complète",
-        "Permet d'ajouter, vérifier, supprimer et compter les mots",
-        "Gère l'état des mots trouvés"
+        "lireEntier(Scanner, String) : lit et parse un entier au clavier",
+        "Récupère 4 valeurs : ligne début, colonne début, ligne fin, colonne fin",
+        "Crée une Coordonnee(ligne, colonne) pour chaque point",
+        "Gère les erreurs : si l'user tape des lettres → NumberFormatException"
     ],
-    notes="Préciser que les mots sont stockés en majuscules et que le dictionnaire suit les mots restants."
+    notes="Quatre appels à lireEntier() pour récupérer les 4 coordonnées. La fonction parse la saisie et la convertit en entier, sinon elle lève une exception qui sera attrapée au niveau supérieur."
 )
 
-# Interface graphique
+# Étape 4 : Vérifier (PRINCIPALE)
 add_bullet_slide(
-    "Interface graphique (src/view/FenetrePrincipale.java)",
+    "Étape 4a : Vérifier les coordonnées",
     [
-        "Swing : grille visuelle (GridLayout 10x10)",
-        "Champs de saisie pour mot et coordonnées, boutons Valider/Rejouer",
-        "Feedback visuel : colorisation des mots trouvés et popups d'erreur"
+        "verifierDansGrille(Coordonnee) : valide que (l,c) est dans [0,9]",
+        "Lance CoordonneesInvalidesException si hors limites",
+        "Exemple : si ligne = 15 → erreur (max = 9)",
+        "C'est une barrière de sécurité avant de lire la grille"
     ],
-    notes="Montrer la capture d'écran (si disponible) et expliquer l'interaction utilisateur."
+    notes="Cette vérification évite les IndexOutOfBoundsException et donne au joueur un message clair. Elle est appelée deux fois : une pour debut, une pour fin."
 )
 
-# Mode console
 add_bullet_slide(
-    "Mode console (src/moteur/AppConsole.java)",
+    "Étape 4b : Vérifier l'alignement",
     [
-        "Version texte du jeu pour tester rapidement",
-        "Affiche la grille, lit saisies, gère exceptions et messages utilisateur"
+        "Calcule distLigne = |fin.ligne - debut.ligne|",
+        "Calcule distColonne = |fin.colonne - debut.colonne|",
+        "Horizontal : distLigne == 0 && distColonne != 0",
+        "Vertical : distColonne == 0 && distLigne != 0",
+        "Diagonal : distLigne == distColonne && distLigne != 0",
+        "Sinon → AlignementInvalideException (ex: déplacement en L)"
     ],
-    notes="Indiquer que le mode console facilite le test sans interface graphique."
+    notes="L'algorithme rejet tout ce qui n'est pas une ligne droite. Par exemple, aller de (0,0) à (1,2) est un L invalide. Seul H/V/D sont acceptés."
 )
 
-# Démo
 add_bullet_slide(
-    "Démonstration",
+    "Étape 4c : Lire le mot dans la grille",
     [
-        "Lancer `AppConsole` pour jouer en CLI",
-        "Ou exécuter `FenetrePrincipale` pour la version GUI",
-        "Montrer recherche d'un mot et mise à jour du score"
+        "Calcule le pas : pasLigne, pasColonne = -1, 0 ou +1",
+        "Boucle de debut jusqu'à fin, appelle getCase(l,c)",
+        "Accumule les lettres dans motLu",
+        "Compare motLu avec le mot saisi (insensible à la casse)",
+        "Vérifie aussi la lecture en INVERSE (mots lus à l'envers)"
     ],
-    notes="Expliquer brièvement les étapes de la démo et ce que le public doit observer."
+    notes="On lit lettre par lettre en suivant la direction calculée. Exemple : de (0,0) à (0,4) horizontal lit A, B, C, D, E. On compare aussi l'inverse au cas où le mot serait marqué de droite à gauche."
+)
+
+add_bullet_slide(
+    "Étape 4d : Vérifier dans le dictionnaire",
+    [
+        "dictionnaire.contient(motCherche) : le mot est-il à trouver ?",
+        "dictionnaire.estDejaTrouve(mot) : a-t-il déjà été trouvé ?",
+        "Si trouvé ET dans dictionnaire → dictionnaire.supprimer(motCherche)",
+        "Met à jour le score : score += motCherche.length() * 10"
+    ],
+    notes="Le dictionnaire maintient deux listes : la liste des mots restants et la liste complète. Quand un mot est trouvé, on le supprime de la liste restante."
+)
+
+# Étape 5 : Fin et boucle
+add_bullet_slide(
+    "Étape 5 : Vérifier la fin de partie",
+    [
+        "partieGagnee() : dictionnaire.estVide() ?",
+        "Si oui → affiche le score final et fin du jeu",
+        "Sinon → boucle retour à l'étape 2 (afficher grille)",
+        "Affiche aussi les mots trouvés (barrés) et restants"
+    ],
+    notes="Le jeu boucle tant qu'il reste des mots. À chaque itération, le joueur voit la grille avec les mots trouvés colorisés, le score et la liste des mots restants."
+)
+
+# Gestion des erreurs
+add_bullet_slide(
+    "Gestion des erreurs avec try-catch",
+    [
+        "CoordonneesInvalidesException : coordonnées hors grille",
+        "AlignementInvalideException : pas une ligne droite",
+        "NumberFormatException : saisie non numérique",
+        "Chaque exception affiche un message clair au joueur",
+        "Le jeu ne crash jamais : boucle continue après erreur"
+    ],
+    notes="Les trois exceptions couvertes permettent une expérience robuste. Le joueur peut corriger sa saisie sans perdre la partie."
+)
+
+# Architecture logicielle
+add_bullet_slide(
+    "Packages et responsabilités",
+    [
+        "model : Grille, Dictionnaire, Coordonnee (données)",
+        "moteur : MoteurJeu, AppConsole (logique du jeu)",
+        "view : FenetrePrincipale (interface graphique Swing)",
+        "exception : CoordonneesInvalidesException, AlignementInvalideException"
+    ],
+    notes="Cette séparation permet de tester la logique sans interface, et de changer l'interface sans modifier le moteur."
+)
+
+# Interface graphique (bonus)
+add_bullet_slide(
+    "Interface graphique (FenetrePrincipale)",
+    [
+        "Grille visuelle : GridLayout 10x10 avec cases colorées",
+        "Champs de texte pour mot et 4 coordonnées",
+        "Boutons : Valider (appelle onValider()) et Rejouer",
+        "Mots trouvés sont barrés et colorisés en vert",
+        "Popups d'erreur pour exceptions et feedback utilisateur"
+    ],
+    notes="La GUI utilise la même logique MoteurJeu et vérifier(). Elle enrichit l'UX avec des visuels et des retours immédiats."
 )
 
 # Conclusion
 add_bullet_slide(
-    "Conclusion et perspectives",
+    "Conclusion",
     [
-        "Projet pédagogique facile à étendre",
-        "Améliorations possibles : import de listes, niveau aléatoire, sauvegarde de parties",
-        "Questions ?"
+        "Les fonctions principales : preparerPartie(), getCase(), lireEntier(), verifier()",
+        "verifier() est le cœur : validation, calcul alignement, lecture, vérification",
+        "Architecture claire et extensible (ajouter modes, listes externes, etc.)",
+        "Robustesse : try-catch sur toutes les saisies utilisateur"
     ],
-    notes="Proposer des pistes d'amélioration et inviter aux questions."
+    notes="Merci ! Avez-vous des questions sur les fonctions ou le flux du jeu ?"
 )
 
 # Save
