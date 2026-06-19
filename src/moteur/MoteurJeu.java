@@ -37,15 +37,25 @@ public class MoteurJeu {
     /** Les cases du dernier mot correctement trouve (utile pour l'affichage). */
     private ArrayList<Coordonnee> dernierChemin;
 
+    private int difficulteActuelle = 2; // 1: Facile, 2: Moyen, 3: Difficile
+
     /**
-     * Constructeur par defaut : prepare une partie avec mots aleatoires.
+     * Constructeur par defaut : prepare une partie avec mots aleatoires et difficulté Moyenne.
      */
     public MoteurJeu() {
+        this(2);
+    }
+
+    /**
+     * Constructeur avec choix de la difficulté.
+     */
+    public MoteurJeu(int difficulte) {
         this.grille = new Grille();
         this.dictionnaire = new Dictionnaire();
         this.score = 0;
+        this.difficulteActuelle = difficulte;
         this.dernierChemin = new ArrayList<Coordonnee>();
-        preparerPartieAleatoire();
+        preparerPartieAleatoire(difficulte);
     }
 
     /**
@@ -71,7 +81,7 @@ public class MoteurJeu {
         if (!modeAleatoire) {
             preparerPartie();
         } else {
-            preparerPartieAleatoire();
+            preparerPartieAleatoire(difficulteActuelle);
         }
     }
 
@@ -92,24 +102,48 @@ public class MoteurJeu {
         grille.remplirCasesVides();
     }
 
-    /** Prepare une partie avec mots aleatoires : en selectionne 10 et les place aleatoirement. */
-    private void preparerPartieAleatoire() {
+    /** Prepare une partie avec mots aleatoires : selectionne selon la difficulte et garantit le placement. */
+    private void preparerPartieAleatoire(int difficulte) {
+        int nbMotsVoulus = 6; // Facile
+        if (difficulte == 2) nbMotsVoulus = 10; // Moyen
+        if (difficulte == 3) nbMotsVoulus = 15; // Difficile
+
         java.util.Random random = new java.util.Random();
-        dictionnaire.remplirAvecMotsAleatoires(10);
+        ArrayList<String> candidats = Dictionnaire.genererMotsAleatoires(100);
         
-        // Essaie de placer les mots aleatoires a des positions aleatoires
-        for (String mot : dictionnaire.getTousLesMots()) {
+        for (String mot : candidats) {
+            if (dictionnaire.getNombreTotal() >= nbMotsVoulus) {
+                break;
+            }
+            
             boolean place = false;
             int tentatives = 0;
-            while (!place && tentatives < 20) {
+            while (!place && tentatives < 50) {
                 int ligne = random.nextInt(Grille.TAILLE);
                 int col = random.nextInt(Grille.TAILLE);
-                int direction = random.nextInt(2); // 0: H, 1: V
-                int dL = (direction == 1) ? 1 : 0;
-                int dC = (direction == 0) ? 1 : 0;
                 
-                if (grille.placerMot(mot, ligne, col, dL, dC)) {
-                    place = true;
+                int dL = 0, dC = 0;
+                if (difficulte == 1) {
+                    // Facile : H (0,1) ou V (1,0)
+                    int direction = random.nextInt(2);
+                    dL = (direction == 1) ? 1 : 0;
+                    dC = (direction == 0) ? 1 : 0;
+                } else if (difficulte == 2) {
+                    // Moyen : H, V, Diagonale bas-droite
+                    int dir = random.nextInt(3);
+                    dL = (dir == 0) ? 0 : (dir == 1) ? 1 : 1;
+                    dC = (dir == 0) ? 1 : (dir == 1) ? 0 : 1;
+                } else {
+                    // Difficile : Toutes directions
+                    dL = random.nextInt(3) - 1;
+                    dC = random.nextInt(3) - 1;
+                }
+                
+                if (dL != 0 || dC != 0) {
+                    if (grille.placerMot(mot, ligne, col, dL, dC)) {
+                        dictionnaire.ajouterMot(mot);
+                        place = true;
+                    }
                 }
                 tentatives++;
             }

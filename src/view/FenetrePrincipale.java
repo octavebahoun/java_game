@@ -79,6 +79,11 @@ public class FenetrePrincipale extends JFrame {
         "Par defaut", "Animaux", "Informatique"
     });
 
+    // --- Sélection de la difficulté ---
+    private final JComboBox<String> comboDifficulte = new JComboBox<String>(new String[]{
+        "Facile", "Moyen", "Difficile"
+    });
+
     // --- Affichage de l'état de la partie ---
     private final JLabel labelScore    = new JLabel();
     private final JLabel labelRestants = new JLabel();
@@ -96,7 +101,8 @@ public class FenetrePrincipale extends JFrame {
 
     public FenetrePrincipale() {
         super("Jeu de Mots Caches");
-        this.moteur = new MoteurJeu();
+        comboDifficulte.setSelectedIndex(1); // Moyen par defaut
+        this.moteur = new MoteurJeu(2);
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout(10, 10));
@@ -199,6 +205,9 @@ public class FenetrePrincipale extends JFrame {
         
         saisie.add(etiquette("  Theme :"));
         saisie.add(comboThemes);
+
+        saisie.add(etiquette("  Difficulte :"));
+        saisie.add(comboDifficulte);
 
         JButton boutonValider = new JButton("Valider");
         boutonValider.setBackground(ACCENT);
@@ -357,7 +366,8 @@ public class FenetrePrincipale extends JFrame {
     private void onRejouer() {
         // 1. Charger le thème sélectionné et réinitialiser le moteur
         appliquerThemeSelectionne();
-        moteur = new MoteurJeu();
+        int difficulte = comboDifficulte.getSelectedIndex() + 1;
+        moteur = new MoteurJeu(difficulte);
         coordSelectionnee = null;
         couleurCaseSelectionnee = null;
         
