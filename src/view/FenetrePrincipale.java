@@ -36,6 +36,10 @@ import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 
+import javax.swing.JComboBox;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 import model.Coordonnee;
 import model.Grille;
 import moteur.MoteurJeu;
@@ -58,6 +62,10 @@ public class FenetrePrincipale extends JFrame {
 
     // --- Les 100 cases de la grille ---
     private final JLabel[][] cases = new JLabel[Grille.TAILLE][Grille.TAILLE];
+
+    // --- Suivi de la selection a la souris ---
+    private Coordonnee coordSelectionnee = null;
+    private Color couleurCaseSelectionnee = null;
     
     // --- Les champs de saisie ---
     private final JTextField champMot      = new JTextField(8);
@@ -66,9 +74,19 @@ public class FenetrePrincipale extends JFrame {
     private final JTextField champLigneFin = new JTextField(2);
     private final JTextField champColFin   = new JTextField(2);
 
-    // --- Affichage de l'etat de la partie ---
+    // --- Sélection du thème ---
+    private final JComboBox<String> comboThemes = new JComboBox<String>(new String[]{
+        "Par defaut", "Animaux", "Informatique"
+    });
+
+    // --- Affichage de l'état de la partie ---
     private final JLabel labelScore    = new JLabel();
     private final JLabel labelRestants = new JLabel();
+    private final JLabel labelTimer    = new JLabel();
+
+    // --- Minuteur ---
+    private int tempsEcouleSecondes = 0;
+    private javax.swing.Timer minuteur;
 
     public FenetrePrincipale() {
         super("Jeu de Mots Caches");
@@ -84,6 +102,16 @@ public class FenetrePrincipale extends JFrame {
 
         rafraichirGrille();
         rafraichirEtat();
+
+        // Initialisation du minuteur
+        minuteur = new javax.swing.Timer(1000, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                tempsEcouleSecondes++;
+                mettreAJourTimer();
+            }
+        });
+        minuteur.start();
 
         pack();
         setMinimumSize(new Dimension(560, 640));
@@ -119,6 +147,16 @@ public class FenetrePrincipale extends JFrame {
                 caseLettre.setPreferredSize(new Dimension(40, 40));
                 caseLettre.setBorder(BorderFactory.createLineBorder(new Color(0xD8, 0xCF, 0xB8)));
                 cases[l][c] = caseLettre;
+
+                final int ligneActuelle = l;
+                final int colonneActuelle = c;
+                caseLettre.addMouseListener(new java.awt.event.MouseAdapter() {
+                    @Override
+                    public void mouseClicked(java.awt.event.MouseEvent e) {
+                        gererClicCase(ligneActuelle, colonneActuelle);
+                    }
+                });
+
                 panneau.add(caseLettre);
             }
         }
@@ -142,6 +180,9 @@ public class FenetrePrincipale extends JFrame {
         saisie.add(etiquette("  Fin (L,C) :"));
         saisie.add(champLigneFin);
         saisie.add(champColFin);
+        
+        saisie.add(etiquette("  Theme :"));
+        saisie.add(comboThemes);
 
         JButton boutonValider = new JButton("Valider");
         boutonValider.setBackground(ACCENT);
@@ -183,13 +224,21 @@ public class FenetrePrincipale extends JFrame {
         saisie.add(boutonQuitter);
 
         // -- Ligne d'etat (score + mots restants) --
-        JPanel etat = new JPanel(new GridLayout(2, 1));
-        etat.setBackground(FOND);
+        JPanel ligneScoreTimer = new JPanel(new BorderLayout());
+        ligneScoreTimer.setBackground(FOND);
         labelScore.setForeground(TEXTE_CLAIR);
         labelScore.setFont(new Font("SansSerif", Font.BOLD, 14));
+        labelTimer.setForeground(TEXTE_CLAIR);
+        labelTimer.setFont(new Font("SansSerif", Font.BOLD, 14));
+        mettreAJourTimer();
+        ligneScoreTimer.add(labelScore, BorderLayout.WEST);
+        ligneScoreTimer.add(labelTimer, BorderLayout.EAST);
+
+        JPanel etat = new JPanel(new GridLayout(2, 1));
+        etat.setBackground(FOND);
         labelRestants.setForeground(TEXTE_CLAIR);
         labelRestants.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        etat.add(labelScore);
+        etat.add(ligneScoreTimer);
         etat.add(labelRestants);
 
         panneau.add(saisie, BorderLayout.CENTER);
@@ -244,8 +293,9 @@ public class FenetrePrincipale extends JFrame {
                 rafraichirEtat();
                 champMot.setText("");
                 if (moteur.partieGagnee()) {
+                    minuteur.stop();
                     JOptionPane.showMessageDialog(this,
-                            "BRAVO ! Tous les mots ont ete trouves.\nScore final : " + moteur.getScore(),
+                            "BRAVO ! Tous les mots ont ete trouves.\nScore final : " + moteur.getScore() + "\nTemps mis : " + String.format("%02d:%02d", tempsEcouleSecondes / 60, tempsEcouleSecondes % 60),
                             "Victoire", JOptionPane.INFORMATION_MESSAGE);
                 }
             } else {
@@ -271,8 +321,16 @@ public class FenetrePrincipale extends JFrame {
     }
     
     private void onRejouer() {
-        // 1. Nouveau moteur = nouvelle partie
+        // 1. Charger le thème sélectionné et réinitialiser le moteur
+        appliquerThemeSelectionne();
         moteur = new MoteurJeu();
+        coordSelectionnee = null;
+        couleurCaseSelectionnee = null;
+        
+        // Réinitialiser le minuteur
+        tempsEcouleSecondes = 0;
+        mettreAJourTimer();
+        minuteur.restart();
 
         // 2. Réinitialiser les couleurs et lettres de la grille graphique
         Grille grille = moteur.getGrille();
@@ -292,6 +350,37 @@ public class FenetrePrincipale extends JFrame {
 
         // 4. Mettre à jour score et mots restants
         rafraichirEtat();
+    }
+
+    /** Gère le clic sur une case de la grille pour la sélection par souris. */
+    private void gererClicCase(int l, int c) {
+        if (coordSelectionnee == null) {
+            // Premier clic : sélection du début
+            coordSelectionnee = new Coordonnee(l, c);
+            couleurCaseSelectionnee = cases[l][c].getBackground();
+            cases[l][c].setBackground(new Color(0xFD, 0xBA, 0x74)); // Orange clair
+
+            champLigneDeb.setText(String.valueOf(l));
+            champColDeb.setText(String.valueOf(c));
+            champLigneFin.setText("");
+            champColFin.setText("");
+        } else {
+            // Second clic : sélection de la fin et validation
+            Coordonnee debut = coordSelectionnee;
+            
+            // Rétablir la couleur d'origine de la première case
+            if (couleurCaseSelectionnee != null) {
+                cases[debut.getLigne()][debut.getColonne()].setBackground(couleurCaseSelectionnee);
+            }
+
+            champLigneFin.setText(String.valueOf(l));
+            champColFin.setText(String.valueOf(c));
+
+            onValider();
+            
+            coordSelectionnee = null;
+            couleurCaseSelectionnee = null;
+        }
     }
 
     /** Recopie les lettres du moteur dans les cases graphiques. */
@@ -315,9 +404,32 @@ public class FenetrePrincipale extends JFrame {
     private void rafraichirEtat() {
         int trouves = moteur.getDictionnaire().getNombreTrouves();
         int total = moteur.getDictionnaire().getNombreTotal();
-
-        labelScore.setText("Score : " + moteur.getScore() + "    |    Mots trouves : " + trouves + " / " + total);
+        int combo = moteur.getComboActuel();
+        String comboTexte = (combo > 1) ? "    |    🔥 COMBO x" + combo + " !" : "";
+ 
+        labelScore.setText("Score : " + moteur.getScore() + "    |    Mots trouves : " + trouves + " / " + total + comboTexte);
         labelRestants.setText(construireListeMots());
+    }
+
+    /** Applique le thème sélectionné dans la JComboBox. */
+    private void appliquerThemeSelectionne() {
+        String theme = (String) comboThemes.getSelectedItem();
+        Path chemin;
+        if ("Animaux".equals(theme)) {
+            chemin = Paths.get("data", "animaux.txt");
+        } else if ("Informatique".equals(theme)) {
+            chemin = Paths.get("data", "informatique.txt");
+        } else {
+            chemin = Paths.get("dictionnaire.txt");
+        }
+        model.Dictionnaire.changerTheme(chemin);
+    }
+
+    /** Met à jour l'affichage du minuteur. */
+    private void mettreAJourTimer() {
+        int minutes = tempsEcouleSecondes / 60;
+        int secondes = tempsEcouleSecondes % 60;
+        labelTimer.setText(String.format("Temps : %02d:%02d", minutes, secondes));
     }
 
     /** Construit une liste HTML avec les mots trouves barres. */

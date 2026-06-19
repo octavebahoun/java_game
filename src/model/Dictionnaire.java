@@ -161,6 +161,21 @@ public class Dictionnaire {
         }
     }
 
+    /**
+     * Change la liste globale des mots disponibles en chargeant un nouveau fichier.
+     * Si le chargement échoue, restaure la liste précédente.
+     */
+    public static boolean changerTheme(java.nio.file.Path chemin) {
+        ArrayList<String> backup = new ArrayList<String>(MOTS_ETENDUS);
+        MOTS_ETENDUS.clear();
+        if (chargerMotsDepuisFichier(chemin)) {
+            return true;
+        } else {
+            MOTS_ETENDUS.addAll(backup);
+            return false;
+        }
+    }
+
     /** Retourne la liste etendue de mots disponibles. */
     public static String[] getMotsDisponibles() {
         return MOTS_ETENDUS.toArray(new String[0]);

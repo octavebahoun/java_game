@@ -30,6 +30,10 @@ public class MoteurJeu {
     private Dictionnaire dictionnaire;
     private int score;
 
+    // --- Suivi du temps pour le combo ---
+    private long dernierTempsTrouve = 0;
+    private int comboActuel = 1;
+
     /** Les cases du dernier mot correctement trouve (utile pour l'affichage). */
     private ArrayList<Coordonnee> dernierChemin;
 
@@ -192,12 +196,25 @@ public class MoteurJeu {
         // 4) Le mot doit correspondre ET faire partie des mots a trouver.
         if (correspond && dictionnaire.contient(motCherche)) {
             dictionnaire.supprimer(motCherche);
-            score += motCherche.length() * 10;
+            
+            long tempsActuel = System.currentTimeMillis();
+            if (dernierTempsTrouve > 0 && (tempsActuel - dernierTempsTrouve) < 60000) {
+                comboActuel++;
+            } else {
+                comboActuel = 1;
+            }
+            dernierTempsTrouve = tempsActuel;
+            
+            score += motCherche.length() * 10 * comboActuel;
             dernierChemin = chemin;
             return true;   // "Gagne"
         }
 
         return false;      // "Perdu"
+    }
+
+    public int getComboActuel() {
+        return comboActuel;
     }
 
     // --- Accesseurs ---
